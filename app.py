@@ -116,4 +116,9 @@ if __name__ == '__main__':
     # Initialize database before running the app
     init_database()
     print("Database initialized successfully!")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    # Get port from environment (for Railway deployment)
+    port = int(os.getenv('PORT', 5000))
+    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    
+    app.run(debug=debug_mode, host='0.0.0.0', port=port)
