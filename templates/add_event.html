@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if edit_mode %}Edit Event{% else %}Add New Event{% endif %} - Event Scheduler
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    {% if edit_mode %}
+                        <i class="bi bi-pencil-square me-2"></i>Edit Event
+                    {% else %}
+                        <i class="bi bi-plus-circle me-2"></i>Create New Event
+                    {% endif %}
+                </h4>
+            </div>
+            
+            <div class="card-body">
+                {% if not edit_mode %}
+                <!-- AI Input Section -->
+                <div class="ai-input-section mb-4 p-4 bg-gradient-primary-subtle rounded-3">
+                    <h5 class="text-primary fw-bold mb-3">
+                        <i class="bi bi-robot me-2"></i>Smart Event Creation
+                    </h5>
+                    <p class="text-muted mb-3">Describe your event in natural language and let AI do the work!</p>
+                    
+                    <form action="{{ url_for('events.add_event') }}" method="POST" class="ai-form">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text">
+                                <i class="bi bi-chat-dots text-primary"></i>
+                            </span>
+                            <textarea class="form-control" name="ai_input" rows="2" 
+                                      placeholder="e.g., 'Team meeting tomorrow at 3pm in conference room A' or 'Lunch with Sarah next Friday at Cafe Roma'"
+                                      value="{{ ai_input if ai_input }}"></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="bi bi-lightbulb me-1"></i>
+                                Try: "Project review next Monday 2pm" or "Birthday party Saturday 7pm at home"
+                            </small>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-magic me-2"></i>Create with AI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="text-center my-4">
+                    <hr class="hr-with-text">
+                    <span class="hr-text bg-white px-3 text-muted">OR</span>
+                </div>
+                {% endif %}
+
+                <!-- Manual Form -->
+                <form action="{% if edit_mode %}{{ url_for('events.edit_event', event_id=event.id) }}{% else %}{{ url_for('events.add_event') }}{% endif %}" 
+                      method="POST" class="manual-form">
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="title" class="form-label fw-semibold">
+                                <i class="bi bi-card-text me-1"></i>Event Title *
+                            </label>
+                            <input type="text" class="form-control" id="title" name="title" 
+                                   value="{% if event %}{{ event.title }}{% endif %}" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="status" class="form-label fw-semibold">
+                                <i class="bi bi-flag me-1"></i>Status
+                            </label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="upcoming" {% if event and event.status == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                                <option value="attending" {% if event and event.status == 'attending' %}selected{% endif %}>Attending</option>
+                                <option value="maybe" {% if event and event.status == 'maybe' %}selected{% endif %}>Maybe</option>
+                                <option value="declined" {% if event and event.status == 'declined' %}selected{% endif %}>Declined</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="date" class="form-label fw-semibold">
+                                <i class="bi bi-calendar3 me-1"></i>Date & Time *
+                            </label>
+                            <input type="datetime-local" class="form-control" id="date" name="date" 
+                                   value="{% if event %}{{ event.date[:16] }}{% endif %}" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="location" class="form-label fw-semibold">
+                                <i class="bi bi-geo-alt me-1"></i>Location
+                            </label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   value="{% if event %}{{ event.location or '' }}{% endif %}"
+                                   placeholder="e.g., Conference Room A, Cafe Roma">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label fw-semibold">
+                            <i class="bi bi-card-text me-1"></i>Description
+                        </label>
+                        <textarea class="form-control" id="description" name="description" rows="4" 
+                                  placeholder="Event details, agenda, notes...">{% if event %}{{ event.description or '' }}{% endif %}</textarea>
+                        
+                        {% if not edit_mode %}
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="enhanceDescription()">
+                                <i class="bi bi-robot me-1"></i>Enhance with AI
+                            </button>
+                            <small class="text-muted ms-2">Let AI generate a description based on title and location</small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Cancel
+                        </a>
+                        
+                        <div>
+                            {% if edit_mode %}
+                            <button type="button" class="btn btn-outline-danger me-2" 
+                                    data-event-id="{{ event.id }}" 
+                                    data-event-title="{{ event.title|e }}"
+                                    onclick="deleteEventSafe(this)">
+                                <i class="bi bi-trash me-2"></i>Delete
+                            </button>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn btn-primary">
+                                {% if edit_mode %}
+                                    <i class="bi bi-check-circle me-2"></i>Update Event
+                                {% else %}
+                                    <i class="bi bi-plus-circle me-2"></i>Create Event
+                                {% endif %}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Event Preview (if editing) -->
+        {% if edit_mode and event %}
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0 text-muted">
+                    <i class="bi bi-eye me-2"></i>Event Preview
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="fw-bold text-primary">{{ event.title }}</h5>
+                        <p class="text-muted mb-2">
+                            <i class="bi bi-calendar3 me-2"></i>{{ event.date|format_date }}
+                        </p>
+                        {% if event.location %}
+                        <p class="text-muted mb-2">
+                            <i class="bi bi-geo-alt me-2"></i>{{ event.location }}
+                        </p>
+                        {% endif %}
+                        {% if event.description %}
+                        <p class="mb-0">{{ event.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <span class="badge {{ event.status|status_badge_class }} fs-6">{{ event.status|title }}</span>
+                        <br>
+                        <small class="text-muted mt-2 d-block">
+                            Created: {{ event.created_at[:10] }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function enhanceDescription() {
+    const title = document.getElementById('title').value;
+    const location = document.getElementById('location').value;
+    const descriptionField = document.getElementById('description');
+    
+    if (!title.trim()) {
+        alert('Please enter an event title first');
+        return;
+    }
+    
+    // Show loading state
+    const enhanceBtn = event.target;
+    const originalText = enhanceBtn.innerHTML;
+    enhanceBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Enhancing...';
+    enhanceBtn.disabled = true;
+    
+    fetch('/events/api/enhance-description', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            title: title,
+            location: location
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            descriptionField.value = data.description;
+            descriptionField.focus();
+        } else {
+            alert('Failed to enhance description: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to enhance description');
+    })
+    .finally(() => {
+        enhanceBtn.innerHTML = originalText;
+        enhanceBtn.disabled = false;
+    });
+}
+
+function deleteEventSafe(button) {
+    const eventId = button.getAttribute('data-event-id');
+    const eventTitle = button.getAttribute('data-event-title');
+    
+    if (confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+        fetch(`/events/delete/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(() => {
+            window.location.href = '{{ url_for("events.list_events") }}';
+        });
+    }
+}
+
+// Auto-resize textarea
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('description');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    }
+});
+</script>
+{% endblock %}

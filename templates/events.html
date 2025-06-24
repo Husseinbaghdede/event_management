@@ -1,0 +1,463 @@
+{% extends "base.html" %}
+
+{% block title %}All Events - Event Scheduler{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold text-primary mb-1">
+                    <i class="bi bi-calendar3 me-2"></i>All Events
+                </h2>
+                <p class="text-muted mb-0">Manage and organize your events</p>
+            </div>
+            <div>
+                <a href="{{ url_for('events.add_event') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Event
+                </a>
+            </div>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body py-3">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <span class="fw-semibold text-muted me-3">Filter by status:</span>
+                    
+                    <a href="{{ url_for('events.list_events') }}" 
+                       class="btn btn-sm {% if not current_status %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="bi bi-list me-1"></i>All Events
+                    </a>
+                    
+                    <a href="{{ url_for('events.list_events', status='upcoming') }}" 
+                       class="btn btn-sm {% if current_status == 'upcoming' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        <i class="bi bi-clock me-1"></i>Upcoming
+                    </a>
+                    
+                    <a href="{{ url_for('events.list_events', status='attending') }}" 
+                       class="btn btn-sm {% if current_status == 'attending' %}btn-success{% else %}btn-outline-success{% endif %}">
+                        <i class="bi bi-check-circle me-1"></i>Attending
+                    </a>
+                    
+                    <a href="{{ url_for('events.list_events', status='maybe') }}" 
+                       class="btn btn-sm {% if current_status == 'maybe' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                        <i class="bi bi-question-circle me-1"></i>Maybe
+                    </a>
+                    
+                    <a href="{{ url_for('events.list_events', status='declined') }}" 
+                       class="btn btn-sm {% if current_status == 'declined' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+                        <i class="bi bi-x-circle me-1"></i>Declined
+                    </a>
+                    
+                    <div class="ms-auto">
+                        <a href="{{ url_for('search.search_page') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-search me-1"></i>Advanced Search
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Events List -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        {% if current_status %}
+                            {{ current_status|title }} Events
+                        {% else %}
+                            All Events
+                        {% endif %}
+                        <span class="badge bg-secondary ms-2">{{ events.items|length }}</span>
+                    </h5>
+                    
+                    <!-- View Toggle -->
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" id="gridViewBtn">
+                            <i class="bi bi-grid"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="listViewBtn">
+                            <i class="bi bi-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if events.items %}
+                    <!-- Grid View -->
+                    <div id="gridView" class="events-grid">
+                        <div class="row g-3">
+                            {% for event in events.items %}
+                            <div class="col-md-6 col-lg-4">
+                                <div class="event-card bg-white border rounded-3 p-3 h-100 shadow-sm hover-shadow
+                                            border-start border-3
+                                            {% if event.status == 'upcoming' %}border-primary{% endif %}
+                                            {% if event.status == 'attending' %}border-success{% endif %}
+                                            {% if event.status == 'maybe' %}border-warning{% endif %}
+                                            {% if event.status == 'declined' %}border-danger{% endif %}">
+                                    
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="fw-bold mb-0 text-truncate me-2">{{ event.title }}</h6>
+                                        <span class="badge 
+                                            {% if event.status == 'upcoming' %}bg-primary{% endif %}
+                                            {% if event.status == 'attending' %}bg-success{% endif %}
+                                            {% if event.status == 'maybe' %}bg-warning{% endif %}
+                                            {% if event.status == 'declined' %}bg-danger{% endif %}">
+                                            {{ event.status|title }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="event-details">
+                                        <div class="d-flex align-items-center mb-1 text-muted">
+                                            <i class="bi bi-calendar3 me-2"></i>
+                                            <small>{{ event.date|format_date }}</small>
+                                        </div>
+                                        
+                                        {% if event.location %}
+                                        <div class="d-flex align-items-center mb-2 text-muted">
+                                            <i class="bi bi-geo-alt me-2"></i>
+                                            <small class="text-truncate">{{ event.location }}</small>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        {% if event.description %}
+                                        <p class="small text-muted mb-2 event-description">
+                                            {{ event.description[:80] }}{% if event.description|length > 80 %}...{% endif %}
+                                        </p>
+                                        {% endif %}
+                                        
+                                        {% if event.date|is_past %}
+                                        <div class="mb-2">
+                                            <small class="text-muted">
+                                                <i class="bi bi-clock-history me-1"></i>Past Event
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="event-actions mt-3">
+                                        <div class="btn-group btn-group-sm w-100" role="group">
+                                            <button type="button" class="btn btn-outline-info" 
+                                                    data-event-id="{{ event.id }}"
+                                                    onclick="viewEventDetailsSafe(this)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <a href="{{ url_for('events.edit_event', event_id=event.id) }}" 
+                                               class="btn btn-outline-primary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    data-event-id="{{ event.id }}" 
+                                                    data-event-title="{{ event.title|e }}"
+                                                    onclick="deleteEventSafe(this)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- List View (Hidden by default) -->
+                    <div id="listView" class="events-list d-none">
+                        <div class="list-group list-group-flush">
+                            {% for event in events.items %}
+                            <div class="list-group-item border-start border-3
+                                        {% if event.status == 'upcoming' %}border-primary{% endif %}
+                                        {% if event.status == 'attending' %}border-success{% endif %}
+                                        {% if event.status == 'maybe' %}border-warning{% endif %}
+                                        {% if event.status == 'declined' %}border-danger{% endif %}">
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0 fw-bold">{{ event.title }}</h6>
+                                            <span class="badge 
+                                                {% if event.status == 'upcoming' %}bg-primary{% endif %}
+                                                {% if event.status == 'attending' %}bg-success{% endif %}
+                                                {% if event.status == 'maybe' %}bg-warning{% endif %}
+                                                {% if event.status == 'declined' %}bg-danger{% endif %}">
+                                                {{ event.status|title }}
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-4">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-calendar3 me-1"></i>{{ event.date|format_date }}
+                                                </small>
+                                            </div>
+                                            {% if event.location %}
+                                            <div class="col-md-4">
+                                                <small class="text-muted">
+                                                    <i class="bi bi-geo-alt me-1"></i>{{ event.location }}
+                                                </small>
+                                            </div>
+                                            {% endif %}
+                                            <div class="col-md-4">
+                                                {% if event.description %}
+                                                <small class="text-muted">{{ event.description[:50] }}...</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="btn-group btn-group-sm ms-3" role="group">
+                                        <button type="button" class="btn btn-outline-info" 
+                                                data-event-id="{{ event.id }}"
+                                                onclick="viewEventDetailsSafe(this)">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <a href="{{ url_for('events.edit_event', event_id=event.id) }}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                data-event-id="{{ event.id }}" 
+                                                data-event-title="{{ event.title|e }}"
+                                                onclick="deleteEventSafe(this)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if events.pages > 1 %}
+                    <nav aria-label="Events pagination" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if events.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('events.list_events', page=events.prev_num, status=current_status) }}">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for page_num in events.iter_pages() %}
+                                {% if page_num %}
+                                    {% if page_num != events.page %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="{{ url_for('events.list_events', page=page_num, status=current_status) }}">
+                                                {{ page_num }}
+                                            </a>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ page_num }}</span>
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if events.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('events.list_events', page=events.next_num, status=current_status) }}">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                {% else %}
+                    <div class="text-center py-5">
+                        {% if current_status %}
+                            <i class="bi bi-calendar-x display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No {{ current_status }} events</h5>
+                            <p class="text-muted mb-4">You don't have any events with status "{{ current_status }}"</p>
+                        {% else %}
+                            <i class="bi bi-calendar-x display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No events yet</h5>
+                            <p class="text-muted mb-4">Get started by creating your first event!</p>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('events.add_event') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Create Your First Event
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Event Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="eventDetailsContent">
+                <!-- Event details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="editEventBtn">Edit Event</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// View toggle functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const gridViewBtn = document.getElementById('gridViewBtn');
+    const listViewBtn = document.getElementById('listViewBtn');
+    const gridView = document.getElementById('gridView');
+    const listView = document.getElementById('listView');
+    
+    gridViewBtn.addEventListener('click', function() {
+        gridView.classList.remove('d-none');
+        listView.classList.add('d-none');
+        gridViewBtn.classList.add('active');
+        listViewBtn.classList.remove('active');
+        localStorage.setItem('eventsViewMode', 'grid');
+    });
+    
+    listViewBtn.addEventListener('click', function() {
+        gridView.classList.add('d-none');
+        listView.classList.remove('d-none');
+        listViewBtn.classList.add('active');
+        gridViewBtn.classList.remove('active');
+        localStorage.setItem('eventsViewMode', 'list');
+    });
+    
+    // Restore saved view mode
+    const savedViewMode = localStorage.getItem('eventsViewMode');
+    if (savedViewMode === 'list') {
+        listViewBtn.click();
+    }
+});
+
+function viewEventDetailsSafe(button) {
+    const eventId = button.getAttribute('data-event-id');
+    viewEventDetails(eventId);
+}
+
+function deleteEventSafe(button) {
+    const eventId = button.getAttribute('data-event-id');
+    const eventTitle = button.getAttribute('data-event-title');
+    
+    if (confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+        fetch(`/events/delete/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(() => {
+            location.reload();
+        });
+    }
+}
+
+function viewEventDetails(eventId) {
+    fetch(`/events/api/${eventId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const event = data.event;
+                const content = `
+                    <div class="event-details-modal">
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <h4 class="text-primary fw-bold">${event.title}</h4>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <span class="badge bg-${ getStatusColor(event.status) } fs-6">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong><i class="bi bi-calendar3 me-2"></i>Date & Time:</strong><br>
+                                <span class="text-muted">${formatEventDate(event.date)}</span>
+                            </div>
+                            ${event.location ? `
+                            <div class="col-md-6">
+                                <strong><i class="bi bi-geo-alt me-2"></i>Location:</strong><br>
+                                <span class="text-muted">${event.location}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        ${event.description ? `
+                        <div class="mb-3">
+                            <strong><i class="bi bi-card-text me-2"></i>Description:</strong><br>
+                            <p class="text-muted mt-2">${event.description}</p>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="row text-muted small">
+                            <div class="col-md-6">
+                                <strong>Created:</strong> ${formatEventDate(event.created_at)}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Last Updated:</strong> ${formatEventDate(event.updated_at)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('eventDetailsContent').innerHTML = content;
+                document.getElementById('editEventBtn').onclick = () => {
+                    window.location.href = `/events/edit/${eventId}`;
+                };
+                
+                new bootstrap.Modal(document.getElementById('eventDetailsModal')).show();
+            } else {
+                alert('Failed to load event details');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load event details');
+        });
+}
+
+function deleteEvent(eventId, eventTitle) {
+    // Legacy function - use deleteEventSafe instead
+    if (confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+        fetch(`/events/delete/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(() => {
+            location.reload();
+        });
+    }
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'upcoming': 'primary',
+        'attending': 'success',
+        'maybe': 'warning',
+        'declined': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+function formatEventDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+</script>
+{% endblock %}

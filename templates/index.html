@@ -1,0 +1,237 @@
+<div class="d-flex align-items-center mb-1 text-muted">
+                                        <i class="bi bi{% extends "base.html" %}
+
+{% block title %}Dashboard - Event Scheduler{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Welcome Section -->
+    <div class="col-12 mb-4">
+        <div class="hero-section bg-gradient-primary text-white rounded-4 p-5">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold mb-3">Welcome to EventScheduler</h1>
+                    <p class="lead mb-4">Manage your events smartly with AI-powered assistance. Create events using natural language and never miss an important moment.</p>
+                    <div class="d-flex gap-3">
+                        <a href="{{ url_for('events.add_event') }}" class="btn btn-light btn-lg">
+                            <i class="bi bi-plus-circle me-2"></i>Create Event
+                        </a>
+                        <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-light btn-lg">
+                            <i class="bi bi-calendar3 me-2"></i>View All Events
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="bi bi-calendar-event display-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="col-12 mb-4">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="stats-card bg-white rounded-3 p-4 shadow-sm border-start border-primary border-4">
+                    <div class="d-flex align-items-center">
+                        <div class="stats-icon bg-primary bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="bi bi-calendar-check text-primary fs-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold text-primary">{{ total_events }}</h3>
+                            <p class="text-muted mb-0">Total Events</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="stats-card bg-white rounded-3 p-4 shadow-sm border-start border-success border-4">
+                    <div class="d-flex align-items-center">
+                        <div class="stats-icon bg-success bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="bi bi-calendar-plus text-success fs-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold text-success">{{ upcoming_events }}</h3>
+                            <p class="text-muted mb-0">Upcoming Events</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="stats-card bg-white rounded-3 p-4 shadow-sm border-start border-info border-4">
+                    <div class="d-flex align-items-center">
+                        <div class="stats-icon bg-info bg-opacity-10 rounded-circle p-3 me-3">
+                            <i class="bi bi-robot text-info fs-4"></i>
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold text-info">AI</h3>
+                            <p class="text-muted mb-0">Smart Features</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white border-bottom-0 py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="bi bi-clock-history me-2 text-primary"></i>Recent Events
+                    </h5>
+                    <a href="{{ url_for('events.list_events') }}" class="btn btn-outline-primary btn-sm">
+                        View All <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if recent_events %}
+                    <div class="row g-3">
+                        {% for event in recent_events %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="event-card bg-light rounded-3 p-3 h-100 border-start border-3 
+                                        {% if event.status == 'upcoming' %}border-primary{% endif %}
+                                        {% if event.status == 'attending' %}border-success{% endif %}
+                                        {% if event.status == 'maybe' %}border-warning{% endif %}
+                                        {% if event.status == 'declined' %}border-danger{% endif %}">
+                                
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold mb-0 text-truncate me-2">{{ event.title }}</h6>
+                                    <span class="badge 
+                                        {% if event.status == 'upcoming' %}bg-primary{% endif %}
+                                        {% if event.status == 'attending' %}bg-success{% endif %}
+                                        {% if event.status == 'maybe' %}bg-warning{% endif %}
+                                        {% if event.status == 'declined' %}bg-danger{% endif %}">
+                                        {{ event.status|title }}
+                                    </span>
+                                </div>
+                                
+                                <div class="event-details">
+                                    <div class="d-flex align-items-center mb-1 text-muted">
+                                        <i class="bi bi-calendar3 me-2"></i>
+                                        <small>{{ event.date|format_date }}</small>
+                                    </div>
+                                    
+                                    {% if event.location %}
+                                    <div class="d-flex align-items-center mb-2 text-muted">
+                                        <i class="bi bi-geo-alt me-2"></i>
+                                        <small class="text-truncate">{{ event.location }}</small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if event.description %}
+                                    <p class="small text-muted mb-2 event-description">
+                                        {{ event.description[:80] }}{% if event.description|length > 80 %}...{% endif %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="event-actions mt-3">
+                                    <div class="btn-group btn-group-sm w-100" role="group">
+                                        <a href="{{ url_for('events.edit_event', event_id=event.id) }}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                data-event-id="{{ event.id }}" 
+                                                data-event-title="{{ event.title|e }}"
+                                                onclick="deleteEventSafe(this)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-calendar-x display-4 text-muted mb-3"></i>
+                        <h5 class="text-muted">No events yet</h5>
+                        <p class="text-muted mb-4">Get started by creating your first event!</p>
+                        <a href="{{ url_for('events.add_event') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Create Your First Event
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Create Modal -->
+<div class="modal fade" id="quickCreateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-lightning-charge text-warning me-2"></i>Quick Create with AI
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('events.add_event') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="aiInput" class="form-label">Describe your event in natural language:</label>
+                        <textarea class="form-control" id="aiInput" name="ai_input" rows="3" 
+                                  placeholder="e.g., Team meeting tomorrow at 3pm in conference room A"></textarea>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Try: "Lunch with Sarah next Friday at 1pm at Cafe Roma" or "Project deadline next Monday"
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-robot me-2"></i>Create with AI
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function deleteEventSafe(button) {
+    const eventId = button.getAttribute('data-event-id');
+    const eventTitle = button.getAttribute('data-event-title');
+    
+    if (confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+        fetch(`/events/delete/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(() => {
+            location.reload();
+        });
+    }
+}
+
+// Add floating action button for quick create
+document.addEventListener('DOMContentLoaded', function() {
+    const fabButton = document.createElement('button');
+    fabButton.className = 'btn btn-primary rounded-circle position-fixed fab-button';
+    fabButton.innerHTML = '<i class="bi bi-plus fs-4"></i>';
+    fabButton.style.cssText = `
+        bottom: 2rem; 
+        right: 2rem; 
+        width: 60px; 
+        height: 60px; 
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+    fabButton.setAttribute('data-bs-toggle', 'modal');
+    fabButton.setAttribute('data-bs-target', '#quickCreateModal');
+    fabButton.setAttribute('title', 'Quick Create Event');
+    
+    document.body.appendChild(fabButton);
+});
+</script>
+{% endblock %}

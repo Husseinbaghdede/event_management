@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}Search Events - Event Scheduler{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Search Header -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-search me-2"></i>Search Events
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('search.search_page') }}" class="search-form">
+                    <div class="row g-3">
+                        <!-- Main Search -->
+                        <div class="col-md-6">
+                            <label for="searchQuery" class="form-label fw-semibold">Search Query</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchQuery" name="q" 
+                                       value="{{ query }}" placeholder="Search title, description, location...">
+                            </div>
+                        </div>
+                        
+                        <!-- Search Type -->
+                        <div class="col-md-3">
+                            <label for="searchType" class="form-label fw-semibold">Search In</label>
+                            <select class="form-select" id="searchType" name="type">
+                                <option value="all" {% if search_type == 'all' %}selected{% endif %}>All Fields</option>
+                                <option value="title" {% if search_type == 'title' %}selected{% endif %}>Title Only</option>
+                                <option value="location" {% if search_type == 'location' %}selected{% endif %}>Location Only</option>
+                                <option value="description" {% if search_type == 'description' %}selected{% endif %}>Description Only</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Status Filter -->
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label fw-semibold">Status</label>
+                            <select class="form-select" id="statusFilter" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="upcoming" {% if status_filter == 'upcoming' %}selected{% endif %}>Upcoming</option>
+                                <option value="attending" {% if status_filter == 'attending' %}selected{% endif %}>Attending</option>
+                                <option value="maybe" {% if status_filter == 'maybe' %}selected{% endif %}>Maybe</option>
+                                <option value="declined" {% if status_filter == 'declined' %}selected{% endif %}>Declined</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Date Range -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date Range</label>
+                            <div class="row g-2">
+                                <div class="col">
+                                    <input type="date" class="form-control" name="date_from" 
+                                           value="{{ date_from }}" placeholder="From">
+                                </div>
+                                <div class="col">
+                                    <input type="date" class="form-control" name="date_to" 
+                                           value="{{ date_to }}" placeholder="To">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Search Actions -->
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="btn-group w-100" role="group">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search me-2"></i>Search
+                                </button>
+                                <a href="{{ url_for('search.search_page') }}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-clockwise me-2"></i>Clear
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-ul me-2 text-primary"></i>Search Results
+                        {% if total_results > 0 %}
+                            <span class="badge bg-primary ms-2">{{ total_results }}</span>
+                        {% endif %}
+                    </h5>
+                    
+                    {% if query or status_filter or (date_from and date_to) %}
+                    <div class="search-summary">
+                        <small class="text-muted">
+                            {% if query %}
+                                Searching for: "<strong>{{ query }}</strong>"
+                            {% endif %}
+                            {% if status_filter %}
+                                | Status: <strong>{{ status_filter|title }}</strong>
+                            {% endif %}
+                            {% if date_from and date_to %}
+                                | From: <strong>{{ date_from }}</strong> to <strong>{{ date_to }}</strong>
+                            {% endif %}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if results %}
+                    <div class="row g-3">
+                        {% for event in results %}
+                        <div class="col-md-6 col-lg-4">
+                            <div class="event-card bg-white border rounded-3 p-3 h-100 shadow-sm
+                                        border-start border-3
+                                        {% if event.status == 'upcoming' %}border-primary{% endif %}
+                                        {% if event.status == 'attending' %}border-success{% endif %}
+                                        {% if event.status == 'maybe' %}border-warning{% endif %}
+                                        {% if event.status == 'declined' %}border-danger{% endif %}">
+                                
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="fw-bold mb-0 text-truncate me-2">
+                                        {% if query and query.lower() in event.title.lower() %}
+                                            {{ event.title|replace(query, '<mark>' + query + '</mark>')|safe }}
+                                        {% else %}
+                                            {{ event.title }}
+                                        {% endif %}
+                                    </h6>
+                                    <span class="badge 
+                                        {% if event.status == 'upcoming' %}bg-primary{% endif %}
+                                        {% if event.status == 'attending' %}bg-success{% endif %}
+                                        {% if event.status == 'maybe' %}bg-warning{% endif %}
+                                        {% if event.status == 'declined' %}bg-danger{% endif %}">
+                                        {{ event.status|title }}
+                                    </span>
+                                </div>
+                                
+                                <div class="event-details">
+                                    <div class="d-flex align-items-center mb-1 text-muted">
+                                        <i class="bi bi-calendar3 me-2"></i>
+                                        <small>{{ event.date|format_date }}</small>
+                                    </div>
+                                    
+                                    {% if event.location %}
+                                    <div class="d-flex align-items-center mb-2 text-muted">
+                                        <i class="bi bi-geo-alt me-2"></i>
+                                        <small class="text-truncate">
+                                            {% if query and event.location and query.lower() in event.location.lower() %}
+                                                {{ event.location|replace(query, '<mark>' + query + '</mark>')|safe }}
+                                            {% else %}
+                                                {{ event.location }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if event.description %}
+                                    <p class="small text-muted mb-2 event-description">
+                                        {% set desc_preview = event.description[:100] %}
+                                        {% if query and query.lower() in event.description.lower() %}
+                                            {{ desc_preview|replace(query, '<mark>' + query + '</mark>')|safe }}
+                                        {% else %}
+                                            {{ desc_preview }}
+                                        {% endif %}
+                                        {% if event.description|length > 100 %}...{% endif %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="event-actions mt-3">
+                                    <div class="btn-group btn-group-sm w-100" role="group">
+                                        <a href="{{ url_for('events.edit_event', event_id=event.id) }}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <button type="button" class="btn btn-outline-info" 
+                                                data-event-id="{{ event.id }}"
+                                                onclick="viewEventDetailsSafe(this)">
+                                            <i class="bi bi-eye"></i> View
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                data-event-id="{{ event.id }}" 
+                                                data-event-title="{{ event.title|e }}"
+                                                onclick="deleteEventSafe(this)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Pagination would go here if implementing pagination for search results -->
+                    
+                {% else %}
+                    <div class="text-center py-5">
+                        {% if query or status_filter or (date_from and date_to) %}
+                            <i class="bi bi-search display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">No events found</h5>
+                            <p class="text-muted mb-4">
+                                Try adjusting your search criteria or 
+                                <a href="{{ url_for('search.search_page') }}" class="text-decoration-none">clear all filters</a>
+                            </p>
+                        {% else %}
+                            <i class="bi bi-search display-4 text-muted mb-3"></i>
+                            <h5 class="text-muted">Start searching</h5>
+                            <p class="text-muted mb-4">Enter keywords, select filters, or choose a date range to find events</p>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('events.add_event') }}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-2"></i>Create New Event
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Event Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="eventDetailsContent">
+                <!-- Event details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="editEventBtn">Edit Event</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function viewEventDetailsSafe(button) {
+    const eventId = button.getAttribute('data-event-id');
+    viewEventDetails(eventId);
+}
+
+function deleteEventSafe(button) {
+    const eventId = button.getAttribute('data-event-id');
+    const eventTitle = button.getAttribute('data-event-title');
+    
+    if (confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+        fetch(`/events/delete/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(() => {
+            location.reload();
+        });
+    }
+}
+
+function viewEventDetails(eventId) {
+    fetch(`/events/api/${eventId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const event = data.event;
+                const content = `
+                    <div class="event-details-modal">
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <h4 class="text-primary fw-bold">${event.title}</h4>
+                            </div>
+                            <div class="col-md-4 text-md-end">
+                                <span class="badge bg-${ getStatusColor(event.status) } fs-6">${event.status.charAt(0).toUpperCase() + event.status.slice(1)}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong><i class="bi bi-calendar3 me-2"></i>Date & Time:</strong><br>
+                                <span class="text-muted">${formatEventDate(event.date)}</span>
+                            </div>
+                            ${event.location ? `
+                            <div class="col-md-6">
+                                <strong><i class="bi bi-geo-alt me-2"></i>Location:</strong><br>
+                                <span class="text-muted">${event.location}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        
+                        ${event.description ? `
+                        <div class="mb-3">
+                            <strong><i class="bi bi-card-text me-2"></i>Description:</strong><br>
+                            <p class="text-muted mt-2">${event.description}</p>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="row text-muted small">
+                            <div class="col-md-6">
+                                <strong>Created:</strong> ${formatEventDate(event.created_at)}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Last Updated:</strong> ${formatEventDate(event.updated_at)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('eventDetailsContent').innerHTML = content;
+                document.getElementById('editEventBtn').onclick = () => {
+                    window.location.href = `/events/edit/${eventId}`;
+                };
+                
+                new bootstrap.Modal(document.getElementById('eventDetailsModal')).show();
+            } else {
+                alert('Failed to load event details');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to load event details');
+        });
+}
+
+function deleteEvent(eventId, eventTitle) {
+    // Legacy function - use deleteEventSafe instead
+    if (confirm(`Are you sure you want to delete "${eventTitle}"?`)) {
+        fetch(`/events/delete/${eventId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(() => {
+            location.reload();
+        });
+    }
+}
+
+function getStatusColor(status) {
+    const colors = {
+        'upcoming': 'primary',
+        'attending': 'success',
+        'maybe': 'warning',
+        'declined': 'danger'
+    };
+    return colors[status] || 'secondary';
+}
+
+function formatEventDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+}
+
+// Auto-submit form on filter changes (with debouncing)
+let searchTimeout;
+document.addEventListener('DOMContentLoaded', function() {
+    const searchForm = document.querySelector('.search-form');
+    const autoSubmitElements = searchForm.querySelectorAll('select, input[type="date"]');
+    
+    autoSubmitElements.forEach(element => {
+        element.addEventListener('change', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                if (document.getElementById('searchQuery').value.trim() || 
+                    document.getElementById('statusFilter').value ||
+                    document.querySelector('input[name="date_from"]').value ||
+                    document.querySelector('input[name="date_to"]').value) {
+                    searchForm.submit();
+                }
+            }, 300);
+        });
+    });
+});
+</script>
+{% endblock %}
